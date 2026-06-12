@@ -1,4 +1,4 @@
-import { BAOMI_BASE_URL, PATHS, SITE_ID } from '@/lib/baomi/constants'
+import { BAOMI_BASE_URL, PATHS, SITE_ID, USER_AGENT } from '@/lib/baomi/constants'
 import { parseQrToken } from '@/lib/baomi/qr'
 import { tokenCookie } from '@/lib/cookies'
 
@@ -12,7 +12,7 @@ function json(data: unknown, init?: ResponseInit) {
 export async function POST(_req?: Request) {
   const res = await fetch(`${BAOMI_BASE_URL}${PATHS.qrToken}`, {
     method: 'POST',
-    headers: { siteId: SITE_ID },
+    headers: { 'User-Agent': USER_AGENT, siteId: SITE_ID },
   })
   if (!res.ok) {
     return json(
@@ -40,7 +40,7 @@ export async function GET(req: Request) {
   }
   const res = await fetch(
     `${BAOMI_BASE_URL}${PATHS.checkQrToken}?qrToken=${encodeURIComponent(qrToken)}`,
-    { method: 'POST' },
+    { method: 'POST', headers: { 'User-Agent': USER_AGENT, siteId: SITE_ID } },
   )
   if (!res.ok) {
     return json(

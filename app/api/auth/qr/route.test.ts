@@ -6,10 +6,14 @@ import { GET, POST } from './route'
 describe('POST /api/auth/qr', () => {
   it('返回二维码内容与 qrToken', async () => {
     const qrContent = JSON.stringify({ params: { qrToken: 'QR1' } })
+    let ua = ''
     server.use(
       http.post(
         'https://www.baomi.org.cn/portal/main-api/v2/spc/getQrToken.do',
-        () => HttpResponse.json({ data: { data: qrContent } }),
+        ({ request }) => {
+          ua = request.headers.get('user-agent') ?? ''
+          return HttpResponse.json({ data: { data: qrContent } })
+        },
       ),
     )
     const res = await POST(
@@ -19,6 +23,8 @@ describe('POST /api/auth/qr', () => {
     const json = await res.json()
     expect(json.qrToken).toBe('QR1')
     expect(json.qrContent).toBe(qrContent)
+    // 回归保护：必须带浏览器 UA，否则被 baomi 的阿里云 WAF 以 405 拦截
+    expect(ua).toContain('Mozilla')
   })
 })
 
