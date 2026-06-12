@@ -9,10 +9,12 @@ Next.js 16 (App Router) · TypeScript · shadcn/ui + Tailwind v4 · Node `crypto
 ## 快速开始
 
 ```bash
-npm install
+pnpm install
 cp .env.local.example .env.local   # 按需修改 COURSE_PACKET_ID
-npm run dev                         # http://localhost:3000
+pnpm dev                            # http://localhost:3000
 ```
+
+> 用 pnpm（仓库含 `pnpm-lock.yaml`）。`corepack enable` 后即可用，无需全局安装。
 
 ## 部署（Docker，推荐自托管）
 
@@ -70,7 +72,7 @@ Caddy 自动申请并续期 Let's Encrypt 证书，反代到容器内 `baomi-web
 ## 测试
 
 ```bash
-npm test        # 全量单元测试（Vitest + MSW，不触达真实接口）
+pnpm test       # 全量单元测试（Vitest + MSW，不触达真实接口）
 ```
 
 ## 手动验证清单（需真实保密观账号）

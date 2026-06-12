@@ -7,7 +7,21 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
@@ -35,8 +49,6 @@ jobs:
             type=sha,format=short
             type=ref,event=tag
 
-      # 镜像内 next build 会编译整个应用（编译错误会让构建失败）。
-      # 单元测试在本地推送前运行；不在 runner 上单独跑 npm ci（其 npm 存在安装挂起问题）。
       - name: Build and push
         uses: docker/build-push-action@v6
         with:

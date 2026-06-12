@@ -1,0 +1,6 @@
+# 不为这些依赖运行 build 脚本：sharp/unrs-resolver 的原生二进制下载会在 CI 网络上
+# 挂起（npm/pnpm 皆然），且本应用未用 next/image、构建也不跑 eslint，均不需要它们。
+allowBuilds:
+  msw: false
+  sharp: false
+  unrs-resolver: false
