@@ -1,4 +1,4 @@
-import { BAOMI_BASE_URL, SITE_ID, USER_AGENT } from './constants'
+import { baomiOrigin, SITE_ID, USER_AGENT } from './constants'
 import { BaomiError } from './errors'
 
 function headers(token: string): HeadersInit {
@@ -15,7 +15,7 @@ function buildUrl(
   path: string,
   params?: Record<string, string | number>,
 ): string {
-  const url = new URL(path, BAOMI_BASE_URL)
+  const url = new URL(path, baomiOrigin())
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       url.searchParams.set(k, String(v))

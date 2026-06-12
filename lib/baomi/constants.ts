@@ -1,6 +1,16 @@
 export const BAOMI_BASE_URL =
   process.env.BAOMI_BASE_URL ?? 'https://www.baomi.org.cn'
 
+/**
+ * 所有对 baomi 的出站请求实际连接的源。
+ * 若设置了 BAOMI_PROXY_URL（一个透明反向代理的地址），则走代理，
+ * 用于绕过 baomi 阿里云 WAF 对数据中心/CF IP 的封禁；否则直连 baomi。
+ * 在调用时读取 env，便于运行时配置与测试覆盖。
+ */
+export function baomiOrigin(): string {
+  return process.env.BAOMI_PROXY_URL || BAOMI_BASE_URL
+}
+
 export const COURSE_PACKET_ID =
   process.env.COURSE_PACKET_ID ?? '312bc914-8e11-421b-b9bc-e900fe1a4e50'
 

@@ -1,4 +1,4 @@
-import { PATHS, BAOMI_BASE_URL, SITE_ID, USER_AGENT } from '@/lib/baomi/constants'
+import { PATHS, baomiOrigin, SITE_ID, USER_AGENT } from '@/lib/baomi/constants'
 import { rsaEncryptPkcs1v15 } from '@/lib/baomi/crypto'
 import { tokenCookie } from '@/lib/cookies'
 
@@ -10,7 +10,7 @@ function json(data: unknown, init?: ResponseInit) {
 }
 
 async function getPublicKey(): Promise<string> {
-  const res = await fetch(`${BAOMI_BASE_URL}${PATHS.publishKey}`, {
+  const res = await fetch(`${baomiOrigin()}${PATHS.publishKey}`, {
     headers: { 'User-Agent': USER_AGENT, siteId: SITE_ID },
   })
   if (!res.ok) throw new Error(`获取公钥失败，状态码: ${res.status}`)
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     sinopec: 'false',
   }
 
-  const res = await fetch(`${BAOMI_BASE_URL}${PATHS.login}`, {
+  const res = await fetch(`${baomiOrigin()}${PATHS.login}`, {
     method: 'POST',
     headers: {
       'User-Agent': USER_AGENT,

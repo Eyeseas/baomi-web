@@ -50,3 +50,24 @@ describe('baomiPost', () => {
     expect(body).toEqual({ x: 1 })
   })
 })
+
+describe('BAOMI_PROXY_URL 代理', () => {
+  it('设置后请求改走代理源而非 baomi 直连', async () => {
+    const prev = process.env.BAOMI_PROXY_URL
+    process.env.BAOMI_PROXY_URL = 'https://my-proxy.example.com'
+    try {
+      let hitProxy = false
+      server.use(
+        http.get('https://my-proxy.example.com/portal/x', () => {
+          hitProxy = true
+          return HttpResponse.json({ status: 0 })
+        }),
+      )
+      await baomiGet('/portal/x', 'TKN')
+      expect(hitProxy).toBe(true)
+    } finally {
+      if (prev === undefined) delete process.env.BAOMI_PROXY_URL
+      else process.env.BAOMI_PROXY_URL = prev
+    }
+  })
+})
