@@ -43,14 +43,15 @@ docker compose up -d           # 后台启动，监听 0.0.0.0:3000
 ```bash
 # 1. 编辑 Caddyfile，把 baomi.example.com 换成你的域名，并将该域名 A 记录解析到本机
 # 2. 放行防火墙/安全组的 80、443 端口
-docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml pull
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
 ```
 
 Caddy 自动申请并续期 Let's Encrypt 证书，反代到容器内 `baomi-web:3000`，宿主机只暴露 80/443。生产建议走 HTTPS——cookie 的 `Secure` 在 `NODE_ENV=production` 下默认开启，否则浏览器不会回传登录态。
 
-### 关于 Cloudflare Workers
+### 出口被 WAF 封时（可选代理）
 
-仓库内附带 OpenNext 适配配置（`wrangler.jsonc` 等），但 **baomi 的阿里云 WAF 会以 405 封禁 Cloudflare 数据中心出口 IP**，需配合 `BAOMI_PROXY_URL`（一台可过 WAF 的机器上跑 `proxy/baomi-proxy.mjs`）才能用。自托管 Docker 无此问题，是更简单的选择。
+若部署机器的出口 IP 被 baomi 的阿里云 WAF 封禁（返回 405），可在一台能过 WAF 的机器上运行 `proxy/baomi-proxy.mjs`（零依赖反向代理），并设置环境变量 `BAOMI_PROXY_URL=https://<代理地址>`，所有 baomi 请求即经此出站。普通 VPS/家用机通常无需此项。
 
 ## 配置（.env.local）
 
