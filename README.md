@@ -14,6 +14,24 @@ cp .env.local.example .env.local   # 按需修改 COURSE_PACKET_ID
 npm run dev                         # http://localhost:3000
 ```
 
+## 部署（Docker，推荐自托管）
+
+在一台**出口 IP 能正常访问 baomi 的机器**上运行（baomi 用阿里云 WAF，会封 Cloudflare/部分云机房 IP；普通 VPS/家用机一般没问题）：
+
+```bash
+git clone <repo> && cd baomi-web
+docker compose up -d --build        # 构建并后台启动，监听 0.0.0.0:3000
+```
+
+改课程包等配置直接编辑 `docker-compose.yml` 的 `environment` 后 `docker compose up -d`。
+生产环境建议在前面套一层反向代理（Caddy/Nginx）做 HTTPS。
+
+> 不用 compose 也可：`docker build -t baomi-web . && docker run -d -p 3000:3000 -e COURSE_PACKET_ID=... baomi-web`
+
+### 关于 Cloudflare Workers
+
+仓库内附带 OpenNext 适配配置（`wrangler.jsonc` 等），但 **baomi 的阿里云 WAF 会以 405 封禁 Cloudflare 数据中心出口 IP**，需配合 `BAOMI_PROXY_URL`（一台可过 WAF 的机器上跑 `proxy/baomi-proxy.mjs`）才能用。自托管 Docker 无此问题，是更简单的选择。
+
 ## 配置（.env.local）
 
 | 变量 | 默认 | 说明 |

@@ -1,0 +1,17 @@
+node_modules
+.next
+.open-next
+.wrangler
+.git
+.github
+npm-debug.log*
+README.md
+docs
+test
+**/*.test.ts
+**/*.test.tsx
+.env*
+.dev.vars
+proxy
+Dockerfile
+.dockerignore

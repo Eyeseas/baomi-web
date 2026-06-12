@@ -1,0 +1,14 @@
+services:
+  baomi-web:
+    build: .
+    image: baomi-web
+    container_name: baomi-web
+    ports:
+      - "3000:3000"
+    environment:
+      # 当年课程包标识，每年更换
+      COURSE_PACKET_ID: "312bc914-8e11-421b-b9bc-e900fe1a4e50"
+      # 刷课每个资源之间的延时（毫秒）。自托管无 Workers 时长限制，保持 2000 即可
+      STUDY_DELAY_MS: "2000"
+      BAOMI_BASE_URL: "https://www.baomi.org.cn"
+    restart: unless-stopped
