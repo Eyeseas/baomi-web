@@ -24,9 +24,19 @@ docker compose up -d --build        # 构建并后台启动，监听 0.0.0.0:300
 ```
 
 改课程包等配置直接编辑 `docker-compose.yml` 的 `environment` 后 `docker compose up -d`。
-生产环境建议在前面套一层反向代理（Caddy/Nginx）做 HTTPS。
-
 > 不用 compose 也可：`docker build -t baomi-web . && docker run -d -p 3000:3000 -e COURSE_PACKET_ID=... baomi-web`
+
+### 自动 HTTPS（Caddy）
+
+仓库提供 `Caddyfile` + `docker-compose.caddy.yml` 叠加层，一条命令拿到自动证书的 HTTPS：
+
+```bash
+# 1. 编辑 Caddyfile，把 baomi.example.com 换成你的域名，并将该域名 A 记录解析到本机
+# 2. 放行防火墙/安全组的 80、443 端口
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+```
+
+Caddy 自动申请并续期 Let's Encrypt 证书，反代到容器内 `baomi-web:3000`，宿主机只暴露 80/443。生产建议走 HTTPS——cookie 的 `Secure` 在 `NODE_ENV=production` 下默认开启，否则浏览器不会回传登录态。
 
 ### 关于 Cloudflare Workers
 

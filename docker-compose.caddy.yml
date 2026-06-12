@@ -1,0 +1,27 @@
+# 叠加层：在基础 compose 之上加 Caddy 做自动 HTTPS。
+# 用法：
+#   1. 编辑 Caddyfile，把域名换成你的，并把该域名 A 记录解析到本机
+#   2. 开放安全组/防火墙的 80、443 端口
+#   3. docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+services:
+  baomi-web:
+    # 不再把 3000 直接暴露到宿主机，统一经 Caddy 走 HTTPS 入口
+    ports: []
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: baomi-caddy
+    depends_on:
+      - baomi-web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,5 @@
+# 把 baomi.example.com 换成你的域名（需提前把 A/AAAA 记录解析到本机 IP）。
+# Caddy 会自动申请并续期 Let's Encrypt 证书，全自动 HTTPS。
+baomi.example.com {
+	reverse_proxy baomi-web:3000
+}
