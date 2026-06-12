@@ -15,7 +15,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # Node 22 自带 npm 10.x 存在 "Exit handler never called" 安装崩溃 bug，升级到 11
+      - run: npm install -g npm@latest
+      - run: npm ci --no-audit --no-fund
       - run: npm test
 
   build:

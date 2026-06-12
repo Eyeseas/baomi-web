@@ -2,7 +2,8 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+# Node 22 自带 npm 10.x 存在 "Exit handler never called" 安装崩溃 bug，升级到 11
+RUN npm install -g npm@latest && npm ci --no-audit --no-fund
 
 FROM node:22-alpine AS builder
 WORKDIR /app
