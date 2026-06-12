@@ -1,7 +1,9 @@
 services:
   baomi-web:
+    # 服务器用 GitHub Actions 构建好的镜像：docker compose pull && up -d
+    # 本地想自己构建则加 --build（会用下面的 build 上下文覆盖）
+    image: ghcr.io/eyeseas/baomi-web:latest
     build: .
-    image: baomi-web
     container_name: baomi-web
     ports:
       - "3000:3000"

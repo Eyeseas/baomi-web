@@ -16,14 +16,24 @@ npm run dev                         # http://localhost:3000
 
 ## 部署（Docker，推荐自托管）
 
-在一台**出口 IP 能正常访问 baomi 的机器**上运行（baomi 用阿里云 WAF，会封 Cloudflare/部分云机房 IP；普通 VPS/家用机一般没问题）：
+在一台**出口 IP 能正常访问 baomi 的机器**上运行（baomi 用阿里云 WAF，会封 Cloudflare/部分云机房 IP；普通 VPS/家用机一般没问题）。
+
+镜像由 GitHub Actions 自动构建并推送到 GHCR，**服务器无需本地构建，直接拉取**：
 
 ```bash
 git clone <repo> && cd baomi-web
-docker compose up -d --build        # 构建并后台启动，监听 0.0.0.0:3000
+
+# 私有镜像需先登录 GHCR（用一个有 read:packages 权限的 PAT）
+echo <YOUR_PAT> | docker login ghcr.io -u Eyeseas --password-stdin
+
+docker compose pull            # 拉取 ghcr.io/eyeseas/baomi-web:latest
+docker compose up -d           # 后台启动，监听 0.0.0.0:3000
 ```
 
+更新版本：`docker compose pull && docker compose up -d`（每次 push 到 main，CI 会自动出新 `latest`）。
 改课程包等配置直接编辑 `docker-compose.yml` 的 `environment` 后 `docker compose up -d`。
+
+> 想在本地自己构建镜像（不拉 GHCR）：`docker compose up -d --build`。
 > 不用 compose 也可：`docker build -t baomi-web . && docker run -d -p 3000:3000 -e COURSE_PACKET_ID=... baomi-web`
 
 ### 自动 HTTPS（Caddy）
