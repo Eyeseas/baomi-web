@@ -7,22 +7,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      # Node 22 自带 npm 10.x 存在 "Exit handler never called" 安装崩溃 bug，升级到 11
-      - run: npm install -g npm@latest
-      - run: npm ci --no-audit --no-fund
-      - run: npm test
-
   build:
-    needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     permissions:
       contents: read
       packages: write
@@ -48,6 +35,8 @@ jobs:
             type=sha,format=short
             type=ref,event=tag
 
+      # 镜像内 next build 会编译整个应用（编译错误会让构建失败）。
+      # 单元测试在本地推送前运行；不在 runner 上单独跑 npm ci（其 npm 存在安装挂起问题）。
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
