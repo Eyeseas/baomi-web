@@ -33,6 +33,8 @@ export const PATHS = {
   courseDirectory: '/portal/main-api/v2/coursePacket/getCourseDirectoryList',
   courseResources: '/portal/main-api/v2/coursePacket/getCourseResourceList',
   courseProgress: '/portal/main-api/v2/coursePacket/getCourseUserStatistic',
+  resourceStatistic:
+    '/portal/main-api/v2/coursePacket/getResourceUserStatistic',
   saveStudy: '/portal/main-api/v2/studyTime/saveCoursePackage.do',
   relateExam: '/portal/main-api/v2/coursePacket/getCourseRelateExam',
   examContent: '/portal/main-api/v2/activity/exam/getExamContentData.do',

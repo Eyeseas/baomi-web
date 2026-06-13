@@ -7,9 +7,30 @@ function resolveDelayMs(): number {
   return Number(process.env.STUDY_DELAY_MS ?? '2000')
 }
 
+/** 单个课程资源（来自 getCourseResourceList 的 listdata 项）。 */
+export interface CourseResource {
+  resourceID: string
+  SYS_UUID: string
+  name: string
+  timeLength: string
+  /** 部分资源自带类型；缺省时回退默认值。 */
+  resourceType?: string | number
+  resourceLibId?: string | number
+}
+
 export type ProgressEvent =
   | { type: 'log'; message: string }
   | { type: 'progress'; name: string; ok: boolean }
+  | {
+      type: 'check'
+      directory: string
+      name: string
+      resourceID: string
+      sysUuid: string
+      timeLength: string
+      finished: boolean
+      stat: unknown
+    }
   | { type: 'result'; data: Record<string, unknown> }
   | { type: 'error'; message: string }
   | { type: 'done' }
@@ -28,6 +49,38 @@ export function timeToSeconds(s: string): number {
 
 interface StudyOptions {
   delayMs?: number
+}
+
+/**
+ * 为单个资源提交一条「已学完」的学习记录。
+ * resourceType / resourceLibId 优先取资源自身字段，缺省回退 '1' / '3'。
+ * 返回平台是否接受（status === 0）。
+ */
+export async function saveOne(
+  token: string,
+  coursePacketId: string,
+  resource: CourseResource,
+): Promise<boolean> {
+  const seconds = timeToSeconds(resource.timeLength)
+  const now = Date.now()
+  try {
+    const result = await baomiGet(PATHS.saveStudy, token, {
+      courseId: coursePacketId,
+      resourceId: resource.resourceID,
+      resourceDirectoryId: resource.SYS_UUID,
+      resourceLength: seconds,
+      studyLength: seconds,
+      studyTime: seconds,
+      startTime: now,
+      resourceName: encodeURIComponent(resource.name),
+      resourceType: String(resource.resourceType ?? '1'),
+      resourceLibId: String(resource.resourceLibId ?? '3'),
+      token,
+    })
+    return result?.status === 0
+  } catch {
+    return false
+  }
 }
 
 export async function* runStudy(
@@ -76,33 +129,122 @@ export async function* runStudy(
         continue
       }
       for (const resource of list) {
-        const seconds = timeToSeconds(resource.timeLength)
-        const now = Date.now()
-        let ok = false
-        try {
-          const result = await baomiGet(PATHS.saveStudy, token, {
-            courseId: coursePacketId,
-            resourceId: resource.resourceID,
-            resourceDirectoryId: resource.SYS_UUID,
-            resourceLength: seconds,
-            studyLength: seconds,
-            studyTime: seconds,
-            startTime: now,
-            resourceName: encodeURIComponent(resource.name),
-            resourceType: '1',
-            resourceLibId: '3',
-            token,
-          })
-          ok = result?.status === 0
-        } catch {
-          ok = false
-        }
+        const ok = await saveOne(token, coursePacketId, resource)
         yield { type: 'progress', name: resource.name, ok }
         if (delayMs > 0) await sleep(delayMs)
       }
     }
   }
   yield { type: 'done' }
+}
+
+/**
+ * 依据 getResourceUserStatistic 的 data 判定某资源是否已学完。
+ * 平台返回字段未在线上确认，故防御式判定：
+ *  1) isFinish 真值；2) progressRate >= 1；3) 已学时长 >= 资源总时长。
+ * 三者全不可用时按未完成处理（宁可多列出，便于人工核对）。
+ */
+export function isResourceFinished(statData: any): boolean {
+  if (!statData) return false
+  if (statData.isFinish === true || statData.isFinish === 1) return true
+  const rate = Number(statData.progressRate)
+  if (Number.isFinite(rate) && rate >= 1) return true
+  const studied = Number(statData.studyLength ?? statData.studyTime)
+  const total = Number(statData.resourceLength ?? statData.totalLength)
+  if (Number.isFinite(studied) && Number.isFinite(total) && total > 0) {
+    return studied >= total
+  }
+  return false
+}
+
+/**
+ * 逐资源检查完成状态，定位「显示已学但未被计入完成」的缺漏项。
+ * 遍历方式与 runStudy 一致，但用 getResourceUserStatistic 查每个资源的真实统计。
+ */
+export async function* runCheck(
+  token: string,
+  coursePacketId: string,
+): AsyncGenerator<ProgressEvent> {
+  let directory: any
+  try {
+    directory = await baomiGet(PATHS.courseDirectory, token, {
+      scale: 1,
+      coursePacketId,
+    })
+  } catch (e) {
+    yield { type: 'error', message: `获取课程目录失败: ${(e as Error).message}` }
+    return
+  }
+  if (!directory?.data) {
+    yield { type: 'error', message: '获取课程目录失败' }
+    return
+  }
+
+  let total = 0
+  let missing = 0
+  for (const section of directory.data) {
+    for (const sub of section.subDirectory ?? []) {
+      let resources: any
+      try {
+        resources = await baomiGet(PATHS.courseResources, token, {
+          coursePacketId,
+          directoryId: sub.SYS_UUID,
+          token,
+        })
+      } catch (e) {
+        yield {
+          type: 'error',
+          message: `获取资源列表失败: ${sub.name} (${(e as Error).message})`,
+        }
+        continue
+      }
+      const list = resources?.data?.listdata
+      if (!list) {
+        yield { type: 'error', message: `获取资源列表失败: ${sub.name}` }
+        continue
+      }
+      for (const resource of list) {
+        total++
+        let stat: any
+        try {
+          stat = await baomiGet(PATHS.resourceStatistic, token, {
+            coursePacketId,
+            resourceDirectoryId: resource.SYS_UUID,
+            token,
+          })
+        } catch (e) {
+          stat = { error: (e as Error).message }
+        }
+        const finished = isResourceFinished(stat?.data)
+        if (!finished) missing++
+        yield {
+          type: 'check',
+          directory: sub.name,
+          name: resource.name,
+          resourceID: resource.resourceID,
+          sysUuid: resource.SYS_UUID,
+          timeLength: resource.timeLength,
+          finished,
+          stat: stat?.data ?? stat,
+        }
+      }
+    }
+  }
+  yield {
+    type: 'log',
+    message: `检查完成：共 ${total} 个资源，未完成 ${missing} 个`,
+  }
+  yield { type: 'done' }
+}
+
+/** 单项重试：为一个资源重新提交学习记录。 */
+export async function studyOne(
+  token: string,
+  coursePacketId: string,
+  resource: CourseResource,
+): Promise<{ ok: boolean }> {
+  const ok = await saveOne(token, coursePacketId, resource)
+  return { ok }
 }
 
 function pad2(n: number) {
